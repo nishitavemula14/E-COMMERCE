@@ -1,11 +1,17 @@
 import { createContext, useContext, useMemo, useState } from "react";
+import { useLocalStorage } from "./Localstorage.jsx";
 
 const CartContext = createContext(null);
+const CART_STORAGE_KEY = "debounce-cart";
+const LAST_CATEGORY_STORAGE_KEY = "debounce-last-category";
 
 export function CartProvider({ children }) {
-  const [cartItems, setCartItems] = useState([]);
+  const [cartItems, setCartItems] = useLocalStorage(CART_STORAGE_KEY, []);
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [lastCategory, setLastCategory] = useState("");
+  const [lastCategory, setLastCategory] = useLocalStorage(
+    LAST_CATEGORY_STORAGE_KEY,
+    ""
+  );
 
   function addToCart(product) {
     setCartItems((items) => {

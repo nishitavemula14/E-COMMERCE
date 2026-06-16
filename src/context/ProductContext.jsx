@@ -1,13 +1,20 @@
 import axios from "axios";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { useLocalStorage } from "./Localstorage.jsx";
 import { getProductCategorySlug } from "../utils/categories.js";
 
-const ProductContext = createContext(null);
+export const ProductContext = createContext(null);
 const PRODUCTS_URL = "https://dummyjson.com/products";
+const PHONES_URL = "https://dummyjson.com/products/search?q=phone";
+const PRODUCTS_STORAGE_KEY = "debounce-products";
 
 export function ProductProvider({ children }) {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [storedProducts, setStoredProducts] = useLocalStorage(
+    PRODUCTS_STORAGE_KEY,
+    []
+  );
+  const [products, setProducts] = useState(storedProducts);
+  const [loading, setLoading] = useState(storedProducts.length === 0);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -17,10 +24,24 @@ export function ProductProvider({ children }) {
       try {
         setLoading(true);
         setError("");
-        const response = await axios.get(PRODUCTS_URL);
+        const [productsResponse, phonesResponse] = await Promise.all([
+          axios.get(PRODUCTS_URL),
+          fetch(PHONES_URL).then((res) => res.json())
+        ]);
+
+        const phoneProducts = (phonesResponse.products ?? []).map((product) => ({
+          ...product,
+          category: "phones"
+        }));
 
         if (active) {
-          setProducts(response.data.products ?? []);
+          const nextProducts = [
+            ...(productsResponse.data.products ?? []),
+            ...phoneProducts
+          ];
+
+          setProducts(nextProducts);
+          setStoredProducts(nextProducts);
         }
       } catch (err) {
         if (active) {
